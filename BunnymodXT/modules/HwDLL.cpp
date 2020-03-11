@@ -1879,6 +1879,40 @@ struct HwDLL::Cmd_BXT_Triggers_Add
 	}
 };
 
+struct HwDLL::Cmd_BXT_Triggers_Place_Down
+{
+	NO_USAGE();
+
+	static void handler()
+	{
+		auto trace = HwDLL::GetInstance().CameraTrace();
+
+		CustomTriggers::placing = true;
+		CustomTriggers::place_start = Vector(trace.EndPos);
+		CustomTriggers::triggers.emplace_back(CustomTriggers::place_start, CustomTriggers::place_start);
+	}
+
+	static void handler(const char*)
+	{
+		handler();
+	}
+};
+
+struct HwDLL::Cmd_BXT_Triggers_Place_Up
+{
+	NO_USAGE();
+
+	static void handler()
+	{
+		CustomTriggers::placing = false;
+	}
+
+	static void handler(const char *)
+	{
+		handler();
+	}
+};
+
 struct HwDLL::Cmd_BXT_Triggers_Clear
 {
 	NO_USAGE();
@@ -2620,6 +2654,8 @@ void HwDLL::RegisterCVarsAndCommandsIfNeeded()
 		Cmd_BXT_Triggers_SetCommand,
 		Handler<const char*>,
 		Handler<unsigned long, const char*>>("bxt_triggers_setcommand");
+	wrapper::Add<Cmd_BXT_Triggers_Place_Down, Handler<>, Handler<const char*>>("+bxt_triggers_place");
+	wrapper::Add<Cmd_BXT_Triggers_Place_Up, Handler<>, Handler<const char*>>("-bxt_triggers_place");
 	wrapper::Add<Cmd_BXT_Record, Handler<const char *>>("bxt_record");
 	wrapper::Add<Cmd_BXT_AutoRecord, Handler<const char *>>("bxt_autorecord");
 	wrapper::Add<Cmd_BXT_Map, Handler<const char *>>("_bxt_map");
@@ -3543,6 +3579,18 @@ HLStrafe::TraceResult HwDLL::PlayerTrace(const float start[3], const float end[3
 	return rv;
 }
 
+HLStrafe::TraceResult HwDLL::CameraTrace()
+{
+	const auto& cl = ClientDLL::GetInstance();
+
+	const auto start = cl.last_vieworg;
+	Vector forward, right, up;
+	cl.pEngfuncs->pfnAngleVectors(cl.last_viewangles, forward, right, up);
+	Vector end = start + forward * 1000.f;
+
+	return PlayerTrace(start, end, HLStrafe::HullType::POINT);
+}
+
 void HwDLL::StartTracing(bool extendDistanceLimit) {
 	if (!ORIG_PM_PlayerTrace || svs->num_clients < 1) {
 		return;
@@ -3701,6 +3749,13 @@ void HwDLL::UpdateCustomTriggers()
 		return;
 
 	CustomTriggers::Update(pl->v.origin, (pl->v.flags & FL_DUCKING) != 0);
+
+	if (CustomTriggers::placing) {
+		auto trace = HwDLL::GetInstance().CameraTrace();
+		Vector place_end(trace.EndPos);
+
+		CustomTriggers::triggers.back().set_corner_positions(CustomTriggers::place_start, place_end);
+	}
 }
 
 void HwDLL::FreeCamTick()

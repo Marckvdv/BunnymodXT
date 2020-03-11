@@ -74,6 +74,13 @@ namespace CustomTriggers
 		}
 	}
 
+	void Trigger::set_corner_positions(Vector corner1, Vector corner2)
+	{
+		corner_min = corner1;
+		corner_max = corner2;
+		normalize();
+	}
+
 	void Trigger::update(const Vector& player_position, bool ducking)
 	{
 		const Vector VEC_HULL_MIN(-16, -16, -36);
