@@ -1875,7 +1875,7 @@ struct HwDLL::Cmd_BXT_Triggers_Add
 
 	static void handler(float x1, float y1, float z1, float x2, float y2, float z2)
 	{
-		CustomTriggers::triggers.emplace_back(Vector(x1, y1, z1), Vector(x2, y2, z2));
+		CustomTriggers::triggers.new_trigger(Vector(x1, y1, z1), Vector(x2, y2, z2));
 	}
 };
 
@@ -1886,10 +1886,7 @@ struct HwDLL::Cmd_BXT_Triggers_Place_Down
 	static void handler()
 	{
 		auto trace = HwDLL::GetInstance().CameraTrace();
-
-		CustomTriggers::placing = true;
-		CustomTriggers::place_start = Vector(trace.EndPos);
-		CustomTriggers::triggers.emplace_back(CustomTriggers::place_start, CustomTriggers::place_start);
+		CustomTriggers::triggers.start_placing(Vector(trace.EndPos));
 	}
 
 	static void handler(const char*)
@@ -1904,7 +1901,7 @@ struct HwDLL::Cmd_BXT_Triggers_Place_Up
 
 	static void handler()
 	{
-		CustomTriggers::placing = false;
+		CustomTriggers::triggers.stop_placing();
 	}
 
 	static void handler(const char *)
@@ -1934,7 +1931,7 @@ struct HwDLL::Cmd_BXT_Triggers_Delete
 			return;
 		}
 
-		CustomTriggers::triggers.erase(--CustomTriggers::triggers.end());
+		CustomTriggers::triggers.pop();
 	}
 
 	static void handler(unsigned long id)
@@ -1944,7 +1941,7 @@ struct HwDLL::Cmd_BXT_Triggers_Delete
 			return;
 		}
 
-		CustomTriggers::triggers.erase(CustomTriggers::triggers.begin() + (id - 1));
+		CustomTriggers::triggers.remove_trigger(id);
 	}
 };
 
@@ -2016,12 +2013,12 @@ struct HwDLL::Cmd_BXT_Triggers_List
 			return;
 		}
 
-		for (size_t i = 0; i < CustomTriggers::triggers.size(); ++i) {
-			const auto& t = CustomTriggers::triggers[i];
+		for (size_t id = 1; id <= CustomTriggers::triggers.size(); ++id) {
+			const auto& t = CustomTriggers::triggers.get_trigger(id);
 			const auto corners = t.get_corner_positions();
 
 			std::ostringstream oss;
-			oss << i + 1 << ": `" << t.get_command().substr(0, t.get_command().size() - 1) << "` - ("
+			oss << id << ": `" << t.get_command().substr(0, t.get_command().size() - 1) << "` - ("
 				<< corners.first.x << ", " << corners.first.y << ", " << corners.first.z << ") | ("
 				<< corners.second.x << ", " << corners.second.y << ", " << corners.second.z << ")\n";
 
@@ -2041,7 +2038,7 @@ struct HwDLL::Cmd_BXT_Triggers_SetCommand
 			return;
 		}
 
-		CustomTriggers::triggers.back().set_command(command);
+		CustomTriggers::triggers.last_trigger().set_command(command);
 	}
 
 	static void handler(unsigned long id, const char* command)
@@ -2051,7 +2048,7 @@ struct HwDLL::Cmd_BXT_Triggers_SetCommand
 			return;
 		}
 
-		CustomTriggers::triggers[id - 1].set_command(command);
+		CustomTriggers::triggers.get_trigger(id).set_command(command);
 	}
 };
 
@@ -3750,11 +3747,11 @@ void HwDLL::UpdateCustomTriggers()
 
 	CustomTriggers::Update(pl->v.origin, (pl->v.flags & FL_DUCKING) != 0);
 
-	if (CustomTriggers::placing) {
+	if (CustomTriggers::triggers.is_placing()) {
 		auto trace = HwDLL::GetInstance().CameraTrace();
 		Vector place_end(trace.EndPos);
-
-		CustomTriggers::triggers.back().set_corner_positions(CustomTriggers::place_start, place_end);
+		Vector place_start = CustomTriggers::triggers.get_place_start();
+		CustomTriggers::triggers.last_trigger().set_corner_positions(place_start, place_end);
 	}
 }
 

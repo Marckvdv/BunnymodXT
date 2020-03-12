@@ -6,7 +6,7 @@
 
 namespace CustomTriggers
 {
-	std::vector<Trigger> triggers;
+	CustomTriggers triggers;
 
 	void Trigger::normalize()
 	{
@@ -172,6 +172,71 @@ namespace CustomTriggers
 		} else {
 			player_touching = false;
 		}
+	}
+
+	void CustomTriggers::pop()
+	{
+		if (triggers.size() > 0)
+		{
+			triggers.pop_back();
+		}
+	}
+
+	bool CustomTriggers::empty()
+	{
+		return triggers.size() == 0;
+	}
+
+	void CustomTriggers::clear()
+	{
+		triggers.clear();
+	}
+
+	size_t CustomTriggers::size()
+	{
+		return triggers.size();
+	}
+
+	Trigger& CustomTriggers::last_trigger()
+	{
+		return triggers.back();
+	}
+
+	Trigger& CustomTriggers::get_trigger(size_t id)
+	{
+		return triggers[id - 1];
+	}
+
+	void CustomTriggers::new_trigger(Vector corner1, Vector corner2)
+	{
+		triggers.emplace_back(corner1, corner2);
+	}
+
+	void CustomTriggers::remove_trigger(size_t id)
+	{
+		triggers.erase(triggers.begin() + (id - 1));
+	}
+
+	void CustomTriggers::start_placing(Vector start)
+	{
+		placing = true;
+		place_start = start;
+		new_trigger(start, start);
+	}
+
+	void CustomTriggers::stop_placing()
+	{
+		placing = false;
+	}
+
+	bool CustomTriggers::is_placing()
+	{
+		return placing;
+	}
+
+	Vector& CustomTriggers::get_place_start()
+	{
+		return place_start;
 	}
 
 	void Update(const Vector& player_position, bool ducking)

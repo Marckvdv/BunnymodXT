@@ -37,9 +37,36 @@ namespace CustomTriggers
 		void update(const Vector& player_position_start, const Vector& player_position_end, bool ducking);
 	};
 
-	extern std::vector<Trigger> triggers;
-	static Vector place_start;
-	static bool placing = false;
+	class CustomTriggers
+	{
+		std::vector<Trigger> triggers;
+		bool placing = false;
+		Vector place_start;
+
+		typedef Trigger* iterator;
+		typedef const Trigger* const_iterator;
+
+	public:
+		iterator begin() { return &triggers[0]; }
+		const_iterator begin() const { return &triggers[0]; }
+		iterator end() { return &triggers[triggers.size()]; }
+		const_iterator end() const { return &triggers[triggers.size()]; }
+
+		void pop();
+		bool empty();
+		void clear();
+		size_t size();
+
+		Trigger& last_trigger();
+		Trigger& get_trigger(size_t id);
+		void new_trigger(Vector corner1, Vector corner2);
+		void remove_trigger(size_t id);
+		void start_placing(Vector start);\
+		void stop_placing();
+		bool is_placing();
+	};
+
+	extern CustomTriggers triggers;
 
 	void Update(const Vector& player_position, bool ducking);
 	void Update(const Vector& player_position_start, const Vector& player_position_end, bool ducking);
